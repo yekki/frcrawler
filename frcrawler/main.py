@@ -1,18 +1,15 @@
 # -*- coding: utf-8 -*-
-# @Date    : 2018-02-07
-# @Author  : yekki
-# @Email   : gary.niu@gmail.com
-# @Link    : https://www.yekki.me
 
 import urllib.request
 import urllib.parse
-import json
-import re
+
 from os import mkdir
 from os.path import exists
-import click
 
-from frcrawler import cleanup_dirs, STAGE_DIR
+import click, requests, re, json
+
+from frcrawler import cleanup_dirs, download, parse_report, Period, STAGE_DIR, HEADERS
+
 
 @click.group()
 def cli():
@@ -20,15 +17,22 @@ def cli():
 
 
 @cli.command(short_help='Downloading finance reports.')
-def report():
-    pass
+@click.option('-c', '--code', required=True, help='Stock code')
+@click.option('-p', '--period', required=True, type=click.Choice((str(p.value) for p in Period)),
+              help=f'{Period.description()}')
+def report(code, period):
+    ret = parse_report(code, period)
+    for i in ret:
+        print(i)
 
 
-@cli.command(short_help="Cleanup stage directory.")
+cli.command(short_help="Cleanup stage directory.")
+
+
+@click.confirmation_option(help='Cleanup stage directory.',
+                           prompt="Are you sure to cleanup stage directory?")
 def cleanup():
     cleanup_dirs(STAGE_DIR)
-
-
 
 
 pattern = re.compile(pattern='[0-9]{6}')
@@ -59,7 +63,6 @@ category_list = {
     category_qtzdsx_szsh;其他重大事项
 [description]
 '''
-
 
 
 def get_stock_code():
