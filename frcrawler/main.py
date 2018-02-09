@@ -20,11 +20,13 @@ def cli():
 @click.option('-c', '--code', required=True, help='Stock code')
 @click.option('-p', '--period', required=True, type=click.Choice((str(p.value) for p in Period)),
               help=f'{Period.description()}')
-def report(code, period):
-    ret = parse_report(code, period)
-    for i in ret:
-        print(i)
+@click.option('-y', '--year', required=True, help='Report year')
+def report(code, period, year):
+    ret = parse_report(code, period, year )
 
+    file = download(ret[0])
+    #print(file)
+    click.open_file('stage/' + file)
 
 cli.command(short_help="Cleanup stage directory.")
 
