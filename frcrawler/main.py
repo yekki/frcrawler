@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import click, os
-
-from frcrawler import cleanup_dirs, download, parse_report, init, Period, STAGE_DIR
+from frcrawler import cleanup_dirs, download, parse_report, init, ReportType, STAGE_DIR
 
 
 @click.group()
@@ -12,12 +11,12 @@ def cli():
 
 @cli.command(short_help='下载资料')
 @click.option('-c', '--code', required=True, help='股票代码')
-@click.option('-p', '--period', required=True, default=0, type=click.Choice((str(p.value) for p in Period)),
-              help=f'{Period.description()}')
+@click.option('-t', '--type', required=True, default=0, type=click.Choice((str(t.value) for t in ReportType)),
+              help=f'{ReportType.description()}')
 @click.option('-y', '--year', required=False, help='年份')
 @init
-def report(code, period, year):
-    ret = parse_report(code, period, year)
+def report(code, type, year):
+    ret = parse_report(code, type, year)
 
     for r in ret:
         download(r[0], r[1])
@@ -33,3 +32,7 @@ def cleanup():
 def open():
     files = sorted(os.listdir(STAGE_DIR), key=lambda x: os.path.getmtime(os.path.join(STAGE_DIR, x)), reverse=True)
     if files: click.launch(os.path.join(STAGE_DIR, files[0]))
+
+
+if __name__ == '__main__':
+    cli()

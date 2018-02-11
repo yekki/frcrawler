@@ -8,7 +8,7 @@ STAGE_DIR = os.path.join(os.getcwd(), 'stage')
 HEADERS = {'User-Agent': 'Mozilla/5.0'}
 
 
-class Period(Enum):
+class ReportType(Enum):
     年报 = 0
     半年报 = 1
     一季报 = 2
@@ -40,7 +40,7 @@ def error(msg, fg='red'):
     exit(-1)
 
 
-def parse_report(code, period, year):
+def parse_report(code, type, year):
     def report_name(meta):
         sec_name = meta['announcementTitle']
         title = meta['announcementTitle']
@@ -55,7 +55,7 @@ def parse_report(code, period, year):
     base_url = 'http://www.cninfo.com.cn/'
     query_url = f'{base_url}/cninfo-new/announcement/query'
     params = {'stock': code,
-              'category': repr(Period(int(period))),
+              'category': repr(ReportType(int(type))),
               'pageNum': '1',
               'pageSize': '50',
               'column': 'sse',  # 还有个szse_sme,为深市，不过测试002508也没问题
@@ -123,4 +123,4 @@ def download(url, filename=None, folder=STAGE_DIR, headers=None, params=None):
 
 
 if __name__ == '__main__':
-    print(repr(Period(1)))
+    print(repr(ReportType(1)))
