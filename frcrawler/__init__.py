@@ -1,14 +1,48 @@
 # -*- coding: utf-8 -*-
 
-import os, shutil, click, requests, cgi
+import os, shutil, click, requests, cgi, re, csv
 from enum import Enum
 from functools import wraps
+from io import StringIO
 
 STAGE_DIR = os.path.join(os.getcwd(), 'stage')
 HEADERS = {'User-Agent': 'Mozilla/5.0'}
 
 
-class ReportType(Enum):
+class Parser(Enum):
+    Announcement = 0
+    Report = 1
+    Brief = 2
+
+class BriefType(Enum):
+    指数 = 0
+    涨跌幅 = 1
+
+    @classmethod
+    def description(cls):
+        return ' '.join(f'{p.value}:{p.name}' for p in cls)
+
+    @property
+    def url(self):
+        urls = ['http://www.csindex.com.cn/data/js/show_zsgz.js?str=ro84Vujt3qqOm29t',
+                'http://www.csindex.com.cn/data/js/show_zsbx.js?str=tHmi5QqVH3e7EG']
+        return urls[self.value]
+
+    @property
+    def file(self):
+        files = ['指标统计.csv', '涨幅统计.csv']
+        return os.path.join(STAGE_DIR, files[self.value])
+
+    @property
+    def columns(self):
+        columns = [('更新日期', '指数名称', '静态市盈率', '滚动市盈率', '市净率', '去年底静态市盈率', '去年底滚动市盈率', '去年底市净率', '指数简称', '股息率'),
+                   ('更新日期', '指数简称', '收盘', '日涨跌', '日涨跌幅（%）', '今年以来涨跌',
+                    '今年以来涨跌幅（%）', '成交额较昨日增减（亿元）', '成交额较昨日增减（%）')]
+
+        return columns[self.value]
+
+
+class AnnouncementType(Enum):
     年报 = 0
     半年报 = 1
     一季报 = 2
@@ -35,12 +69,26 @@ class ReportType(Enum):
         return ' '.join(f'{p.value}:{p.name}' for p in cls)
 
 
+def parser_factory(parser):
+    method = f'parse_{parser.name.lower()}'
+    return globals()[method]
+
+
 def error(msg, fg='red'):
     click.secho(msg, fg=fg)
     exit(-1)
 
 
-def parse_report(code, type, year):
+def parse_report(**kwargs):
+    for k, v in kwargs.items():
+        print(f'k={k},v={v}')
+
+
+def parse_announcement(**kwargs):
+    code = kwargs['code']
+    type = kwargs['type']
+    year = kwargs['year']
+
     def report_name(meta):
         sec_name = meta['announcementTitle']
         title = meta['announcementTitle']
@@ -55,7 +103,7 @@ def parse_report(code, type, year):
     base_url = 'http://www.cninfo.com.cn/'
     query_url = f'{base_url}/cninfo-new/announcement/query'
     params = {'stock': code,
-              'category': repr(ReportType(int(type))),
+              'category': repr(AnnouncementType(int(type))),
               'pageNum': '1',
               'pageSize': '50',
               'column': 'sse',  # 还有个szse_sme,为深市，不过测试002508也没问题
@@ -122,5 +170,64 @@ def download(url, filename=None, folder=STAGE_DIR, headers=None, params=None):
     return filename
 
 
+def parse_brief(brief):
+    url = brief.url
+    #file = brief.file
+    columns = brief.columns
+    results = []
+
+    r = requests.get(url, headers=HEADERS)
+    if r.status_code == 200:
+        r.encoding = 'gbk'
+        all_data = re.findall(re.compile(r'"(.*?)"', re.S), r.text)
+        update_time = all_data[0]
+        total_num = len(all_data)
+        row = total_num // 9
+
+
+        results.append(columns)
+
+        for j in range(0, row):
+            tmp = [all_data[i] for i in range(1 + j * 9, 10 + j * 9)]
+            tmp.insert(0, update_time)
+            results.append(tmp)
+        return results
+    else:
+        print('network error!')
+
+
+def save_to_csv(brief):
+    url = brief.url
+    file = brief.file
+    columns = brief.columns
+
+    r = requests.get(url, headers=HEADERS)
+    if r.status_code == 200:
+        r.encoding = 'gbk'
+        all_data = re.findall(re.compile(r'"(.*?)"', re.S), r.text)
+        update_time = all_data[0]
+        total_num = len(all_data)
+        row = total_num // 9
+
+        with open(file, 'w+', newline='', encoding='gbk') as f:
+            ff = csv.writer(f)
+            ff.writerow(columns)
+            for j in range(0, row):
+                tmp = [all_data[i] for i in range(1 + j * 9, 10 + j * 9)]
+                tmp.insert(0, update_time)
+                ff.writerow(tuple(tmp))
+    else:
+        print('network error!')
+
+
+def get_latest_file():
+    files = sorted(os.listdir(STAGE_DIR), key=lambda x: os.path.getmtime(os.path.join(STAGE_DIR, x)), reverse=True)
+    if files: return os.path.join(STAGE_DIR, files[0])
+
+
+def cleanup():
+    cleanup_dirs(STAGE_DIR)
+
+
 if __name__ == '__main__':
-    print(repr(ReportType(1)))
+    pass
