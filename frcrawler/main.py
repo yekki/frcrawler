@@ -3,7 +3,7 @@
 import click
 from frcrawler import init, get_latest_file, cleanup, model
 from frcrawler.model import AnnouncementType, BriefType
-from frcrawler.visitors import create_visitor
+from frcrawler.visitors import create_visitor, Visitor
 from frcrawler.parser import parse
 
 
@@ -20,7 +20,7 @@ def cli():
 @init
 def announcement(code, type, year):
     result = parse(AnnouncementType, type=type, code=code, year=year)
-    visitor = create_visitor('file', result)
+    visitor = create_visitor(Visitor.File, result)
     result.accept(visitor)
 
 
@@ -30,7 +30,7 @@ def announcement(code, type, year):
 @init
 def brief(type):
     result = parse(BriefType, type=type)
-    visitor = create_visitor('console', result)
+    visitor = create_visitor(Visitor.Console, result)
     result.accept(visitor)
 
 

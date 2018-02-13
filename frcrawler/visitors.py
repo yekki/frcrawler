@@ -5,17 +5,23 @@ import frcrawler.visitor as visitor
 from frcrawler.model import AnnouncementType, BriefType
 from frcrawler.lib import download, error
 from terminaltables import DoubleTable
+from enum import Enum
 
 
-def create_visitor(name, result):
+def create_visitor(visitor, result):
     try:
         module = sys.modules[__name__]
-        class_ = getattr(module, f'{name.capitalize()}Visitor')
+        class_ = getattr(module, f'{visitor.name}Visitor')
         instance = class_(result.rows)
     except:
-        error(f'unsupported visitor type:{name}')
+        error(f'unsupported visitor type:{visitor}')
     else:
         return instance
+
+
+class Visitor(Enum):
+    File = 0
+    Console = 1
 
 
 class FileVisitor:
