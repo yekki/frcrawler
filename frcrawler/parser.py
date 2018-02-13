@@ -10,8 +10,8 @@ def parse(ctype, **kwargs):
     parse_func = f'_{ctype.__name__[:-4].lower()}'
     type = ctype(int(kwargs['type']))
     kwargs['ctype'] = type
-    rows = globals()[parse_func](**kwargs)
-    return ResultSet(type, rows)
+    records = globals()[parse_func](**kwargs)
+    return ResultSet(type, records)
 
 
 def _brief(**kwargs):
@@ -38,6 +38,21 @@ def _brief(**kwargs):
     else:
         print('network error!')
 
+
+def _report(**kwargs):
+    keyword = kwargs['keyword']
+
+    query_data = {
+        'hq_or_cw': '2',
+        'keyWord': keyword,
+        'maxNum': '10'
+    }
+
+    query_a = 'http://www.cninfo.com.cn/cninfo-new/data/query'
+    query_hk = 'http://www.cninfo.com.cn/cninfo-new/data/queryhk'
+    download_url = 'http://www.cninfo.com.cn/cninfo-new/data/download'
+
+    pass
 
 def _announcement(**kwargs):
     code = kwargs['code']

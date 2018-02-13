@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import sys
+import sys, csv
 import frcrawler.visitor as visitor
 from frcrawler.model import AnnouncementType, BriefType
 from frcrawler.lib import download, error
@@ -12,9 +12,9 @@ def create_visitor(visitor, result):
     try:
         module = sys.modules[__name__]
         class_ = getattr(module, f'{visitor.name}Visitor')
-        instance = class_(result.rows)
-    except:
-        error(f'unsupported visitor type:{visitor}')
+        instance = class_(result)
+    except Exception as e:
+        error(f'unsupported visitor type: {visitor}. error: {e}')
     else:
         return instance
 
@@ -25,8 +25,8 @@ class Visitor(Enum):
 
 
 class FileVisitor:
-    def __init__(self, rows):
-        self.rows = rows
+    def __init__(self, result):
+        self._result = result
 
     @visitor.on('member')
     def visit(self, member):
@@ -34,16 +34,18 @@ class FileVisitor:
 
     @visitor.when(AnnouncementType)
     def visit(self, member):
-        [download(r[0], r[1]) for r in self.rows]
+        [download(r[0], r[1]) for r in self._result.records]
 
     @visitor.when(BriefType)
     def visit(self, member):
-        raise ValueError('unsupported!')
+        with open(self._result.ctype.file, 'w+', encoding='gbk') as file:
+            writer = csv.writer(file)
+            writer.writerows(self._result.records)
 
 
 class ConsoleVisitor:
-    def __init__(self, rows):
-        self.rows = rows
+    def __init__(self, result):
+        self._result = result
 
     @visitor.on('member')
     def visit(self, member):
@@ -55,5 +57,5 @@ class ConsoleVisitor:
 
     @visitor.when(BriefType)
     def visit(self, member):
-        table = DoubleTable(self.rows)
+        table = DoubleTable(self._result.records)
         print(table.table)

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import click
-from frcrawler import init, get_latest_file, cleanup, model
+from frcrawler import init, get_latest_file, cleanup
 from frcrawler.model import AnnouncementType, BriefType
 from frcrawler.visitors import create_visitor, Visitor
 from frcrawler.parser import parse

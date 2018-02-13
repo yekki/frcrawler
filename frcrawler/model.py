@@ -1,18 +1,31 @@
 # -*- coding: utf-8 -*-
 from enum import Enum
-import os
+import os, abc
 
-STAGE_DIR = os.path.join(os.getcwd(), 'stage')
+STAGE_DIR = os.path.join(os.getcwd(), 'data')
 HEADERS = {'User-Agent': 'Mozilla/5.0'}
 
 
-class BriefType(Enum):
-    指数 = 0
-    涨跌幅 = 1
+class BaseType(Enum):
+    _metaclass__ = abc.ABCMeta
 
     @classmethod
     def description(cls):
         return ' '.join(f'{p.value}:{p.name}' for p in cls)
+
+    def accept(self, visitor):
+        visitor.visit(self)
+
+
+class FinancialReport(BaseType):
+    利润表 = 0
+    资产负债表 = 1
+    现金流表 = 2
+
+
+class BriefType(BaseType):
+    指数 = 0
+    涨跌幅 = 1
 
     @property
     def url(self):
@@ -33,11 +46,8 @@ class BriefType(Enum):
 
         return columns[self.value]
 
-    def accept(self, visitor):
-        visitor.visit(self)
 
-
-class AnnouncementType(Enum):
+class AnnouncementType(BaseType):
     年报 = 0
     半年报 = 1
     一季报 = 2
@@ -59,22 +69,19 @@ class AnnouncementType(Enum):
                  'category_scgkfx_szsh')
         return descs[self.value]
 
-    @classmethod
-    def description(cls):
-        return ' '.join(f'{p.value}:{p.name}' for p in cls)
-
-    def accept(self, visitor):
-        visitor.visit(self)
-
 
 class ResultSet:
-    def __init__(self, ctype, rows):
+    def __init__(self, ctype, records):
         self._ctype = ctype
-        self._rows = rows
+        self._records = records
 
     def accept(self, visitor):
         self._ctype.accept(visitor)
 
     @property
-    def rows(self):
-        return self._rows
+    def records(self):
+        return self._records
+
+    @property
+    def ctype(self):
+        return self._ctype
