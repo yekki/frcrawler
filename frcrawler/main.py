@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import click, os
-from frcrawler import download, init, parser_factory, get_latest_file, cleanup, save_to_csv
-from frcrawler import Parser, AnnouncementType, BriefType
+import click
+from frcrawler import init, get_latest_file, cleanup, model
+from frcrawler.model import AnnouncementType, BriefType
+from frcrawler.visitors import create_visitor
+from frcrawler.parser import parse
 
 
 @click.group()
@@ -17,9 +19,9 @@ def cli():
 @click.option('-y', '--year', required=False, help='年份')
 @init
 def announcement(code, type, year):
-    parse = parser_factory(Parser.Announcement)
-    results = parse(code=code, type=type, year=year)
-    [download(r[0], r[1]) for r in results]
+    result = parse(AnnouncementType, type=type, code=code, year=year)
+    visitor = create_visitor('file', result)
+    result.accept(visitor)
 
 
 @cli.command(short_help='下载统计数据')
@@ -27,11 +29,9 @@ def announcement(code, type, year):
               help=f'{BriefType.description()}')
 @init
 def brief(type):
-    parse = parser_factory(Parser.Brief)
-    results = parse(BriefType(int(type)))
-
-    for r in results:
-        print(r)
+    result = parse(BriefType, type=type)
+    visitor = create_visitor('console', result)
+    result.accept(visitor)
 
 
 @cli.command(short_help="清理文件下载目录")
@@ -48,6 +48,12 @@ def clear():
 @cli.command(short_help="打开最新下载的文件")
 def open():
     click.launch(get_latest_file())
+
+
+@cli.command(short_help="测试命令")
+def debug():
+    pass
+
 
 if __name__ == '__main__':
     cli()
